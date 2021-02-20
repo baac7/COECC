@@ -6,6 +6,8 @@
 
 int main(){
 
+	setup();
+
 	tecPoint testPoint1;
 
 	init_normalCoord(&testPoint1, "162364632", "27347237423");

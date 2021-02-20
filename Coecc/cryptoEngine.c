@@ -4,6 +4,43 @@
 
 #include "cryptoEngine.h"
 
+mpz_t p, a, d;
+
+void setup(){
+
+	mpz_init(p);
+	mpz_init(a);
+	mpz_init(d);
+
+	mpz_t base, nineteen, minusOne, nominator, denominator;
+	unsigned int exp = 255;
+
+	mpz_init(base);
+	mpz_init(nineteen);
+	mpz_set_ui(base, 2);
+	mpz_set_ui(nineteen, 19);
+	mpz_pow_ui(p, base, exp);
+	mpz_sub(p, p, nineteen);
+
+	mpz_init(minusOne);
+	mpz_set_str(minusOne, "-1", 10);
+	mpz_mod(a, minusOne, p);
+
+	mpz_init(nominator);
+	mpz_init(denominator);
+	mpz_set_ui(nominator, 121665);
+	mpz_set_ui(denominator, 121666);
+	coecc_div(d, nominator, denominator);
+
+	gmp_printf("p is equal to %Zd\na is equal to %Zd\nd is equal to %Zd\n", p, a, d);
+
+	mpz_clear(base);
+	mpz_clear(nineteen);
+	mpz_clear(minusOne);
+	mpz_clear(nominator);
+	mpz_clear(denominator);
+}
+
 void init_normalCoord
 	(
 		tecPoint *point,
@@ -45,10 +82,6 @@ void coecc_add
 		mpz_t src2
 	){
 
-	mpz_t p;
-	mpz_init(p);
-	mpz_set_ui(p, 7);
-
 	mpz_add(dest, src1, src2);
 	mpz_mod(dest, dest, p);
 }
@@ -59,10 +92,6 @@ void coecc_sub
 		mpz_t src1,
 		mpz_t src2
 	){
-
-	mpz_t p;
-	mpz_init(p);
-	mpz_set_ui(p, 7);
 
 	mpz_sub(dest, src1, src2);
 	mpz_mod(dest, dest, p);
@@ -75,10 +104,6 @@ void coecc_mul
 		mpz_t src2
 	){
 
-	mpz_t p;
-	mpz_init(p);
-	mpz_set_ui(p, 7);
-
 	mpz_mul(dest, src1, src2);
 	mpz_mod(dest, dest, p);
 }
@@ -89,10 +114,6 @@ void coecc_div
 		mpz_t src1,
 		mpz_t src2
 	){
-
-	mpz_t p;
-	mpz_init(p);
-	mpz_set_ui(p, 7);
 
 	mpz_t temp;
 	mpz_init(temp);
@@ -125,7 +146,7 @@ void coecc_tecPointAddition
 	coecc_mul(A, point1->x, point2->x);
 	coecc_mul(B, point1->y, point2->y);
 	coecc_mul(C, point1->t, point2->t);
-	//C*=4
+	coecc_mul(C, C, d);
 	coecc_mul(D, point1->z, point2->z);
 	coecc_add(temp1, point1->x, point1->y);
 	coecc_add(temp2, point2->x, point2->y);
@@ -134,12 +155,23 @@ void coecc_tecPointAddition
 	coecc_sub(E, temp2, B);
 	coecc_sub(F, D, C);
 	coecc_add(G, D, C);
-	//temp1 = a*A
+	coecc_mul(temp1, a, A);
 	coecc_sub(H, B, temp1);
 	coecc_mul(dest->x, E, F);
 	coecc_mul(dest->y, G, H);
 	coecc_mul(dest->t, E, H);
 	coecc_mul(dest->z, F, G);
+
+	mpz_clear(A);
+	mpz_clear(B);
+	mpz_clear(C);
+	mpz_clear(D);
+	mpz_clear(E);
+	mpz_clear(F);
+	mpz_clear(G);
+	mpz_clear(H);
+	mpz_clear(temp1);
+	mpz_clear(temp2);
 }
 
 void demet
@@ -178,15 +210,16 @@ void demet
 
 	for(i = 0; i < lg2; i++){
 
-		//coecc_tecPointAddition(&Q, &Q, &Q);
+		coecc_tecPointAddition(&Q, &Q, &Q);
 
 		if(*(bin+i)){
 
-			//coecc_tecPointAddition(&Q, &Q, &P);
+			coecc_tecPointAddition(&Q, &Q, &P);
 		}
 	}
 
 	free(bin);
+	mpz_clear(temp);
 
 	//return Q(X)/Q(Z) as x, Q(Y)/Q(Z) as y
 }

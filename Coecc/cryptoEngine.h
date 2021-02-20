@@ -15,6 +15,8 @@ typedef struct extendedCoord{
 	mpz_t z;
 }extendedTecPoint;
 
+void setup();
+
 void init_normalCoord
 	(
 		tecPoint*,
