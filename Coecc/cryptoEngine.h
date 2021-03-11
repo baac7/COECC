@@ -68,7 +68,7 @@ void coecc_tecPointAddition
 		extendedTecPoint*
 	);
 
-void demet
+void functionToBeNamed1
 	(
 		int,
 		tecPoint*
