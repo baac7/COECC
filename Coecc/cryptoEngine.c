@@ -174,7 +174,7 @@ void coecc_tecPointAddition
 	mpz_clear(temp2);
 }
 
-void demet
+void functionToBeNamed1
 	(
 		int k,
 		tecPoint *point
