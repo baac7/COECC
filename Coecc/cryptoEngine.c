@@ -1,11 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <gmp.h>
+#include <time.h>
+#include <limits.h>
 
 #include "cryptoEngine.h"
 
 mpz_t p, a, d;
 
+/* Setup function sets the crypto engine characteristic values
+ * Parameters p, a and d defines the curve
+ * p: (2^255) - 19
+ * a: (-1) mod p
+ * d: (121665 / 121666) mod p
+ * All the variables are of type mpz_t
+ * */
 void setup(){
 
 	mpz_init(p);
@@ -32,7 +41,7 @@ void setup(){
 	mpz_set_ui(denominator, 121666);
 	coecc_div(d, nominator, denominator);
 
-	gmp_printf("p is equal to %Zd\na is equal to %Zd\nd is equal to %Zd\n", p, a, d);
+	//gmp_printf("p is equal to %Zd\na is equal to %Zd\nd is equal to %Zd\n", p, a, d);
 
 	mpz_clear(base);
 	mpz_clear(nineteen);
@@ -40,6 +49,9 @@ void setup(){
 	mpz_clear(nominator);
 	mpz_clear(denominator);
 }
+
+/* Initialization function for Twisted Edwards Curve point with x and y coordinates
+ * */
 
 void init_normalCoord
 	(
@@ -54,6 +66,9 @@ void init_normalCoord
 	mpz_set_str(point->x, xCoord, 10);
 	mpz_set_str(point->y, yCoord, 10);
 }
+
+/* Initialization function for extended Twisted Edwards Curve point with x, y, t and z coordinates
+ * */
 
 void init_extendedCoord
 	(
@@ -75,6 +90,8 @@ void init_extendedCoord
 	mpz_set_str(point->z, zCoord, 10);
 }
 
+/* Addition operation for mpz_t types over a finite field
+ * */
 void coecc_add
 	(
 		mpz_t dest,
@@ -86,6 +103,8 @@ void coecc_add
 	mpz_mod(dest, dest, p);
 }
 
+/* Subtraction operation for mpz_t types over a finite field
+ * */
 void coecc_sub
 	(
 		mpz_t dest,
@@ -97,6 +116,8 @@ void coecc_sub
 	mpz_mod(dest, dest, p);
 }
 
+/* Multiplication operation for mpz_t types over a finite field
+ * */
 void coecc_mul
 	(
 		mpz_t dest,
@@ -108,6 +129,8 @@ void coecc_mul
 	mpz_mod(dest, dest, p);
 }
 
+/* Division operation for mpz_t types over a finite field
+ * */
 void coecc_div
 	(
 		mpz_t dest,
@@ -123,6 +146,10 @@ void coecc_div
 	mpz_mod(dest, dest, p);
 }
 
+/* Point addition function on Twisted Edwards Curves with extended coordinates
+ * Cost of the function is 10 multiplications, 1 squaring, 7 additions
+ * Addition of the point1 and point2 is stored in dest
+ * */
 void coecc_tecPointAddition
 	(
 		extendedTecPoint *dest,
@@ -174,9 +201,13 @@ void coecc_tecPointAddition
 	mpz_clear(temp2);
 }
 
-void functionToBeNamed1
+/* Implementation of scalar multiplication operation on Elliptic Curves
+ * Function adds a point with itself for k times
+ * Successive squaring and point addition functions are used in the implementation
+ * */
+tecPoint coecc_scalarMul
 	(
-		int k,
+		unsigned long long k,
 		tecPoint *point
 	){
 
@@ -193,8 +224,13 @@ void functionToBeNamed1
 	mpz_set(P.t, temp);
 	mpz_set_ui(P.z, 1);
 
-	int lg2 = 0, n = k, i, j = 0;
+	int lg2 = 0, i, j = 0;
+	unsigned long long n = k;
 
+	/* The purpose of the first two below loops is to perform successive squaring
+	 * While loop calculates the logarithm 2 base of the number n
+	 * For loop masks the number n to obtain its ones and zeros representation
+	 * */
 	while(n > 0){
 
 		n = n >> 1;
@@ -221,5 +257,39 @@ void functionToBeNamed1
 	free(bin);
 	mpz_clear(temp);
 
+	tecPoint result;
+	mpz_t x, y;
+	char x_str[128];
+	char y_str[128];
+
+	mpz_init(x);
+	mpz_init(y);
+	coecc_div(x, Q.x, Q.y);
+	coecc_div(y, Q.y, Q.z);
+
+	mpz_get_str(x_str, 10, x);
+	mpz_get_str(y_str, 10, y);
+	init_normalCoord(&result, x_str, y_str);
+
 	//return Q(X)/Q(Z) as x, Q(Y)/Q(Z) as y
+	return result;
 }
+
+/* Function generates a key pair from a given point
+ * d is the private key represented as a number
+ * Q is the public key represented as a point
+ * */
+void keyPairGeneration
+	(
+		tecPoint* P
+	){
+
+	srand(time(NULL));
+	unsigned long long d = (rand() * rand()) % ULONG_MAX;
+	tecPoint Q = coecc_scalarMul(d, P);
+
+	printf("d: %llu\n", d);
+	gmp_printf("Q(X): %Zd\nQ(Y): %Zd", Q.x, Q.y);
+
+}
+
