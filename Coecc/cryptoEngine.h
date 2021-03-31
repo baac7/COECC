@@ -1,3 +1,8 @@
+/*
+ * This header file declares the functions and structs used in the Crypto System implementation
+ *
+ * */
+
 #ifndef CRYPTOENGINE_H_
 #define CRYPTOENGINE_H_
 
@@ -68,9 +73,20 @@ void coecc_tecPointAddition
 		extendedTecPoint*
 	);
 
-void functionToBeNamed1
+tecPoint coecc_scalarMul
 	(
-		int,
+		unsigned long long,
+		tecPoint*
+	);
+
+void keyPairGeneration
+	(
+		tecPoint*
+	);
+
+void coecc_encryption
+	(
+		char*,
 		tecPoint*
 	);
 
