@@ -20,6 +20,11 @@ typedef struct extendedCoord{
 	mpz_t z;
 }extendedTecPoint;
 
+typedef struct keyPair{
+	unsigned long long d;
+	tecPoint Q;
+}keyPair;
+
 void setup();
 
 void init_normalCoord
@@ -79,15 +84,19 @@ tecPoint coecc_scalarMul
 		tecPoint*
 	);
 
-void keyPairGeneration
+keyPair keyPairGeneration
 	(
 		tecPoint*
 	);
 
 void coecc_encryption
 	(
-		char*,
-		tecPoint*
+		/*...*/
+	);
+
+void coecc_decryption
+	(
+		/*...*/
 	);
 
 #endif /* CRYPTOENGINE_H_ */
