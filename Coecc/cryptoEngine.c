@@ -279,7 +279,7 @@ tecPoint coecc_scalarMul
  * d is the private key represented as a number
  * Q is the public key represented as a point
  * */
-void keyPairGeneration
+keyPair keyPairGeneration
 	(
 		tecPoint* P
 	){
@@ -288,8 +288,26 @@ void keyPairGeneration
 	unsigned long long d = (rand() * rand()) % ULONG_MAX;
 	tecPoint Q = coecc_scalarMul(d, P);
 
-	printf("d: %llu\n", d);
-	gmp_printf("Q(X): %Zd\nQ(Y): %Zd", Q.x, Q.y);
-
+	keyPair generatedKP;
+	
+	generatedKP.d = d;
+	generatedKP.Q = Q;
+	
+	return generatedKP;
 }
 
+void coecc_encryption
+	(
+		/*...*/
+	){
+	
+	//todo
+}
+
+void coecc_decryption
+	(
+		/*...*/
+	){
+	
+	//todo
+}
