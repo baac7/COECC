@@ -1,20 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <gmp.h>
 #include <time.h>
 #include <limits.h>
+#include <gmp.h>
 
 #include "cryptoEngine.h"
 
 mpz_t p, a, d;
 
-/* Setup function sets the crypto engine characteristic values
- * Parameters p, a and d defines the curve
- * p: (2^255) - 19
- * a: (-1) mod p
- * d: (121665 / 121666) mod p
- * All the variables are of type mpz_t
- * */
 void setup(){
 
 	mpz_init(p);
@@ -41,17 +34,12 @@ void setup(){
 	mpz_set_ui(denominator, 121666);
 	coecc_div(d, nominator, denominator);
 
-	//gmp_printf("p is equal to %Zd\na is equal to %Zd\nd is equal to %Zd\n", p, a, d);
-
 	mpz_clear(base);
 	mpz_clear(nineteen);
 	mpz_clear(minusOne);
 	mpz_clear(nominator);
 	mpz_clear(denominator);
 }
-
-/* Initialization function for Twisted Edwards Curve point with x and y coordinates
- * */
 
 void init_normalCoord
 	(
@@ -66,9 +54,6 @@ void init_normalCoord
 	mpz_set_str(point->x, xCoord, 10);
 	mpz_set_str(point->y, yCoord, 10);
 }
-
-/* Initialization function for extended Twisted Edwards Curve point with x, y, t and z coordinates
- * */
 
 void init_extendedCoord
 	(
@@ -90,8 +75,6 @@ void init_extendedCoord
 	mpz_set_str(point->z, zCoord, 10);
 }
 
-/* Addition operation for mpz_t types over a finite field
- * */
 void coecc_add
 	(
 		mpz_t dest,
@@ -103,8 +86,6 @@ void coecc_add
 	mpz_mod(dest, dest, p);
 }
 
-/* Subtraction operation for mpz_t types over a finite field
- * */
 void coecc_sub
 	(
 		mpz_t dest,
@@ -116,8 +97,6 @@ void coecc_sub
 	mpz_mod(dest, dest, p);
 }
 
-/* Multiplication operation for mpz_t types over a finite field
- * */
 void coecc_mul
 	(
 		mpz_t dest,
@@ -129,8 +108,6 @@ void coecc_mul
 	mpz_mod(dest, dest, p);
 }
 
-/* Division operation for mpz_t types over a finite field
- * */
 void coecc_div
 	(
 		mpz_t dest,
@@ -146,10 +123,6 @@ void coecc_div
 	mpz_mod(dest, dest, p);
 }
 
-/* Point addition function on Twisted Edwards Curves with extended coordinates
- * Cost of the function is 10 multiplications, 1 squaring, 7 additions
- * Addition of the point1 and point2 is stored in dest
- * */
 void coecc_tecPointAddition
 	(
 		extendedTecPoint *dest,
@@ -201,14 +174,10 @@ void coecc_tecPointAddition
 	mpz_clear(temp2);
 }
 
-/* Implementation of scalar multiplication operation on Elliptic Curves
- * Function adds a point with itself for k times
- * Successive squaring and point addition functions are used in the implementation
- * */
 tecPoint coecc_scalarMul
 	(
-		unsigned long long k,
-		tecPoint *point
+		int k,
+		tecPoint* point
 	){
 
 	extendedTecPoint P, Q;
@@ -224,13 +193,8 @@ tecPoint coecc_scalarMul
 	mpz_set(P.t, temp);
 	mpz_set_ui(P.z, 1);
 
-	int lg2 = 0, i, j = 0;
-	unsigned long long n = k;
+	int lg2 = 0, n = k, i, j = 0;
 
-	/* The purpose of the first two below loops is to perform successive squaring
-	 * While loop calculates the logarithm 2 base of the number n
-	 * For loop masks the number n to obtain its ones and zeros representation
-	 * */
 	while(n > 0){
 
 		n = n >> 1;
@@ -271,43 +235,125 @@ tecPoint coecc_scalarMul
 	mpz_get_str(y_str, 10, y);
 	init_normalCoord(&result, x_str, y_str);
 
-	//return Q(X)/Q(Z) as x, Q(Y)/Q(Z) as y
 	return result;
 }
 
-/* Function generates a key pair from a given point
- * d is the private key represented as a number
- * Q is the public key represented as a point
- * */
 keyPair keyPairGeneration
 	(
+		unsigned long long n,
 		tecPoint* P
 	){
 
 	srand(time(NULL));
-	unsigned long long d = (rand() * rand()) % ULONG_MAX;
+	unsigned long long d = rand()%ULONG_MAX;
 	tecPoint Q = coecc_scalarMul(d, P);
 
 	keyPair generatedKP;
-	
+
 	generatedKP.d = d;
 	generatedKP.Q = Q;
-	
+
 	return generatedKP;
 }
 
-void coecc_encryption
+tecPoint coecc_pointAdd
 	(
-		/*...*/
+		tecPoint x,
+		tecPoint y
 	){
-	
-	//todo
+
+	//x1: x.x
+	//y1: x.y
+	//x2: y.x
+	//y2: y.y
+
+	tecPoint z;
+	mpz_t temp1, temp2, x3, y3;
+
+	coecc_sub(temp1, y.y, x.y);
+	coecc_sub(temp2, y.x, x.x);
+	coecc_div(temp1, temp1, temp2);
+	coecc_mul(temp2, temp1, temp1);
+	coecc_sub(x3, temp2, x.x);
+	coecc_sub(x3, x3, y.x);
+
+	coecc_sub(temp2, x.x, x3);
+	coecc_mul(y3, temp1, temp2);
+	coecc_sub(y3, y3, x.y);
+
+	mpz_clear(temp1);
+	mpz_clear(temp2);
+
+	mpz_set(z.x, x3);
+	mpz_set(z.y, y3);
+
+	return z;
 }
 
-void coecc_decryption
+tecPoint* coecc_enc
 	(
-		/*...*/
+		tecPoint* P,
+		tecPoint Q
 	){
+
+	unsigned long long t = rand()%ULONG_MAX;
+	tecPoint M = coecc_scalarMul(t, P);
+
+	mpz_t m;
+	mpz_set(m, M.x);
 	
-	//todo
+	//aes_enc(m, plain); //deprecated - migrated to java-aes
+
+	unsigned long long k = rand()%ULONG_MAX;
+	tecPoint C1 = coecc_scalarMul(k, P);
+
+	tecPoint temp = coecc_scalarMul(k, &Q);
+
+	tecPoint C2 = coecc_pointAdd(M, temp);
+
+	tecPoint *Cs = malloc(sizeof(tecPoint)*2);
+	Cs[0] = C1;
+	Cs[1] = C2;
+	return Cs;
 }
+
+void coecc_dec
+	(
+		tecPoint* Cs,
+		unsigned long long d
+	){
+
+	tecPoint C1_negated;
+
+	mpz_t minusOne;
+	mpz_init(minusOne);
+	mpz_set_str(minusOne, "-1", 10);
+
+	coecc_mul(C1_negated.x, Cs[0].x, minusOne);
+	mpz_set(C1_negated.y, Cs[0].y);
+	C1_negated = coecc_scalarMul(d, &C1_negated);
+
+	tecPoint M;
+
+	M = coecc_pointAdd(Cs[1], C1_negated);
+
+	mpz_clear(minusOne);
+
+	//cipher = aes_dec(M.x, plain) //deprecated - migrated to java-aes
+}
+
+/*
+ * 1. Eğrinin üzerinde bir nokta seç: M <- t.P (t random)
+ *    1.1. m <- M.x'i anahtar olarak kullanıp aes ile şifreleme yap
+ *    1.2. cipher = aes_enc(m, plain)
+ * 2.
+ * 3.
+ * 4.
+ * 5. return C1, C2, cipher
+ *
+ * dec: 1.1. plain = aes_dec(m, cipher)
+ * return plain
+ *
+ * A - B = A + (-B)
+ * -(x,y) = (-x,y)
+ */
